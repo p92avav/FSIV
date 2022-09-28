@@ -1,0 +1,3 @@
+/home/valentin/Descargas/FSIV-main/Theory/build/CMakeFiles/convolution.dir
+/home/valentin/Descargas/FSIV-main/Theory/build/CMakeFiles/edit_cache.dir
+/home/valentin/Descargas/FSIV-main/Theory/build/CMakeFiles/rebuild_cache.dir
