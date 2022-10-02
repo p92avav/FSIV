@@ -62,8 +62,7 @@ uchar mySub(uchar v, uchar k)
 static void on_trackbar_mult(int, void*)
 {
     mult = (double) mult_slider / mult_slider_max;
-   
-    std::cout << mult << std::endl;
+
     for(int i = 0; i < processedImage.rows;i++)
     {
         for(int j = 0; j < processedImage.cols; j++)
@@ -84,10 +83,8 @@ static void on_trackbar_mult(int, void*)
 static void on_trackbar_add(int, void*)
 {
     addi = (double) add_slider;
-
-    std::cout << addi << std::endl;
     
-    if(hasMinus % 2 == 0)
+    if((int)hasMinus % 2 == 0)
     {
         for(int i = 0; i < processedImage.rows;i++)
         {
@@ -103,7 +100,7 @@ static void on_trackbar_add(int, void*)
             }
         }
     }
-    else if(hasMinus % 2 == 1)
+    else if((int)hasMinus % 2 == 1)
     {
         for(int i = 0; i < processedImage.rows;i++)
         {
@@ -121,6 +118,23 @@ static void on_trackbar_add(int, void*)
     }
 
     cv::imshow("Processed", processedImage);
+}
+
+static void invertImage(Mat Image)
+{
+    for(int i = 0; i < processedImage.rows;i++)
+    {
+        for(int j = 0; j < processedImage.cols; j++)
+        {
+            Vec3b ptr = processedImage.at<Vec3b>(Point(j,i));
+            
+            ptr[0] = 255 - ptr[0];
+            ptr[1] = 255 - ptr[1];
+            ptr[2] = 255 - ptr[2];
+
+            processedImage.at<Vec3b>(Point(j,i))=ptr;
+        }
+    }
 }
 
 int main (int argc, char* const* argv)
@@ -153,9 +167,7 @@ int main (int argc, char* const* argv)
     if(parser.has("o"))
     {
         path = parser.get<cv::String>("o");
-        cout<<"a"<<endl;
-        cout <<path<<endl;
-        cout << "b"<<endl;
+
     }
     else
     {
@@ -205,6 +217,11 @@ int main (int argc, char* const* argv)
         if(key == 's' || key == 'S')
         {
             imwrite(path, processedImage);
+        }
+        if(key == 'i' || key == 'I')
+        {
+            invertImage(processedImage);
+            cv::imshow("Processed", processedImage);
         }
 
     } while (key != 27);

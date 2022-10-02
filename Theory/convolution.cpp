@@ -12,10 +12,10 @@ void convolution(const Mat & src, int n)
     Mat kernel(n,n,CV_32F);
 
     for(int i = 0; i<n; i++){
-		for(int j = 0; j<n; j++){
-			kernel.at<float>(i,j)=;
-		}
-	}
+		  for(int j = 0; j<n; j++){
+			kernel.at<float>(i,j) = 3;
+      }
+    }
 
     src.copyTo(dst);
     float sum;
@@ -29,14 +29,14 @@ void convolution(const Mat & src, int n)
         {
           for(int j=-1;j<=1;j++)
           {
-            sum=sum+kernel.at<uxhar>()*src.at<uchar>(y-j,x-k);
+            sum=sum+kernel.at<uchar>()*src.at<uchar>(y-j,x-k);
           }
         }
         dst.at<uchar>(y,x)=sum;
       }
     }
 
-    imshow("output",dst);
+    imshow("Output",dst);
 }
 
 int main(int argc,char **argv)
@@ -44,8 +44,8 @@ int main(int argc,char **argv)
 
     cv::Mat image=cv::imread(argv[1], cv::IMREAD_GRAYSCALE);
               
-    cv::namedWindow("image");
-    cv::imshow("image",image);
+    cv::namedWindow("Input");
+    cv::imshow("Input",image);
 
     convolution(image,3);
 
