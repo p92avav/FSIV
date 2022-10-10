@@ -15,5 +15,5 @@ ENDIF()
 
 LINK_LIBRARIES(${OpenCV_LIBS} ${XRAND})
 
-add_executable(convolution convolution.cpp)
+add_executable(medianFilter medianFilter.cpp)
 

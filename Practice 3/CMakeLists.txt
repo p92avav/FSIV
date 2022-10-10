@@ -15,4 +15,4 @@ ENDIF()
 
 LINK_LIBRARIES(${OpenCV_LIBS} ${XRAND})
 
-add_executable(unsharp unsharp.cpp common_code.cpp)
+add_executable(unsharp unsharp.cpp)
