@@ -8,6 +8,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+using namespace std;
+using namespace cv;
+
 /**
  * @brief Creates a list of 3D points representing the position 
  * in the real world of the corners (Z=0).

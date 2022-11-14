@@ -15,6 +15,7 @@
 #include <opencv2/calib3d.hpp>
 #include <iostream>
 #include <string>
+#include <fstream>
 
 #include "common_code.hpp"
 
@@ -24,7 +25,7 @@ using namespace cv;
 const String keys =
 "{help h usage ? |      | print this message   }"
 "{list           | images.txt | path to txt with filenames }"
-"{size		   	 | 		| size of the squares in mm }"
+"{size           | 		| size of the square in the chessboard }"
 "{out            | intrinsics.yml | output name }"
 ; 
 
@@ -44,36 +45,29 @@ int main(int argc,char **argv)
 		return 0;
 	}
 
-	float sqsize = 100;
+	float sqsize = parser.get<float>("size");
 	String outname = parser.get<String>("out");
 	
 	String listtxt = parser.get<String>("list");
 	
 	std::vector<String> lfiles;
 	
-	int squareSize = parser.get<int>("size");
-
 	cv::Size imageSize;
 
-	// Read the list of files
-	std::ifstream list(listtxt);
+	ifstream list(listtxt);
 	if (!list.is_open())
 	{
-		std::cerr << "Error opening file " << listtxt << std::endl;
+		cout << "Error opening file " << listtxt << endl;
 		return -1;
 	}
 
 	String filename;
-	while (list >> filename)
+	while (getline(list, filename))
 	{
 		lfiles.push_back(filename);
 	}
 
-	cout<<endl<<"TEST VER SI LEE BIEN LOS ARCHIVOS Y LOS GUARDA EN EL VECTOR"<<endl;
-	for(int i=0;i<lfiles.size();i++){
-		cout<<lfiles[i]<<endl;
-	}
-
+	list.close();
 	try {
 
 		// Create a window to display the images
@@ -81,22 +75,52 @@ int main(int argc,char **argv)
 		vector<vector<Point2f> > imagePoints;
 		cv::Size patternsize = cv::Size(5, 4);
 
+		imagePoints.resize(lfiles.size());
+
 		for (int fix = 0; fix < lfiles.size(); fix++)
 		{
-
+			cv::Mat readImage = cv::imread(lfiles[fix], cv::IMREAD_GRAYSCALE);
+			cv::imshow("ImagePattern", readImage);
+			cv::waitKey(100);
+			Mat img = readImage.clone();
 			// TODO: find corners in current image
-			cv::findChessboardCorners(cv::imread(lfiles[fix]), patternsize, imagePoints[fix], CALIB_CB_ADAPTIVE_THRESH | CALIB_CB_NORMALIZE_IMAGE);
+			cv::findChessboardCorners(img, patternsize, imagePoints[fix], 
+			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE + CALIB_CB_FAST_CHECK);
 
 			// TODO: add corners to the vector of image corners
+			imagePoints.push_back(imagePoints[fix]);
 
+			//Drawn corners
+			cv::drawChessboardCorners(img, patternsize, imagePoints[fix], true);
+			cv::imshow("ImagePattern", img);
+			cv::waitKey(100);
 		}
-		
+
 		// TODO
 		// CALIBRATION GOES HERE
-		
+
 		// TODO: prepare 3D points
-		
+		vector<Point3f> points3d;
+		fsiv_boardPoints3d(sqsize, patternsize, points3d);
+
 		// TODO: run camera calibration
+		Mat cameraMatrix, distCoeffs;
+		//replicate points3d into a vector of vectors
+		vector<vector<Point3f>> points3d2;
+		for (int i = 0; i < imagePoints.size(); i++)
+		{
+			points3d2.push_back(points3d);
+		}
+
+		imageSize = cv::Size(640, 480);
+
+		fsiv_calibrateCamera(points3d2, imagePoints, imageSize, cameraMatrix, distCoeffs);
+
+		//Wirte changes into a file
+		FileStorage fs(outname, FileStorage::WRITE);
+		fs << "cameraMatrix" << cameraMatrix;
+		fs << "distCoeffs" << distCoeffs;
+		fs.release();
 
 	}catch(std::exception &ex)
 	{
@@ -105,4 +129,3 @@ int main(int argc,char **argv)
 
 	return 0;
 }
- 
