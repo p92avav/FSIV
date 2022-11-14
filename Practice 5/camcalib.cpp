@@ -116,10 +116,12 @@ int main(int argc,char **argv)
 
 		fsiv_calibrateCamera(points3d2, imagePoints, imageSize, cameraMatrix, distCoeffs);
 
-		//Wirte changes into a file
+		//Wirte changes into a file, including size
 		FileStorage fs(outname, FileStorage::WRITE);
-		fs << "cameraMatrix" << cameraMatrix;
-		fs << "distCoeffs" << distCoeffs;
+		fs << "image_width" << imageSize.width;
+		fs << "image_height" << imageSize.height;
+		fs << "camera_matrix" << cameraMatrix;
+		fs << "distortion_coefficients" << distCoeffs;
 		fs.release();
 
 	}catch(std::exception &ex)
