@@ -1,6 +1,6 @@
-/*
+/* 
    (c) Fundamentos de Sistemas Inteligenties en Vision
-   University of Cordoba, Spain
+   University of Cordoba, Spain  
 */
 
 #include <iostream>
@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <ctype.h>
 #include <cmath>
+
 
 #include <opencv2/core/utility.hpp>
 #include <opencv2/core/core.hpp>
@@ -30,45 +31,47 @@ int __Debug_Level = 0;
 */
 
 const cv::String keys =
-    "{help h usage ? |      | print this message   }"
+    "{help h usage ? |      | print this message   }"        
 #ifndef NDEBUG
     "{verbose        |0     | Set the verbose level.}"
-#endif
+#endif    
     "{t threshold    |13     | Segmentation threshold.}"
-    "{s              |0   | Radius of structural element.}"
+    "{s              |0   | Radius of structural element.}"    
     "{c              |  | Use the camera?}"
-    "{g              |  | Gaussian Kernel size.}"
+    "{g              |  | Gaussin kernel size}"
     "{input         |<none>| Path to video/Camera index.}"
-    "{output        |<none>| Path to output video.}";
+    "{output        |<none>| Path to output video.}"
+    ;
 
-int main(int argc, char *const argv[])
+int main (int argc, char * const argv[])
 {
   /* Default values */
-  bool cameraInput = false;
+  system("clear");
+  bool cameraInput=false;
   int threshold;
-  const char *filein = 0;
-  const char *fileout = 0;
+  const char * filein = 0;
+  const char * fileout = 0;
   char opt;
   int radius = 0;
-  int gaussianKernel = 0;
-
+  int gauss = 0;
+  
   cv::CommandLineParser parser(argc, argv, keys);
   parser.about("Background segmentation in video.");
   if (parser.has("help"))
   {
-    parser.printMessage();
-    return 0;
+      parser.printMessage();
+      return 0;
   }
 
 #ifndef NDEBUG
   __Debug_Level = parser.get<int>("verbose");
 #endif
-
+    
   std::string input_path = parser.get<std::string>("input");
   std::string output_path = parser.get<std::string>("output");
-  threshold = parser.get<int>("threshold");
+  threshold = parser.get<int>("threshold");  
   radius = parser.get<int>("s");
-  gaussianKernel = parser.get<int>("g");
+  gauss = parser.get<int>("g");
 
   filein = input_path.c_str();
   fileout = output_path.c_str();
@@ -76,16 +79,16 @@ int main(int argc, char *const argv[])
   std::cout << "Input stream: " << filein << endl;
   std::cout << "Output: " << fileout << endl;
 
-  VideoCapture input(filein);
-
+  VideoCapture input;
+    
   if (parser.has("c"))
   {
     std::cout << "Using camera index" << std::endl;
     input.open(atoi(filein));
   }
-  else
+  else  
     input.open(filein);
-
+    
   if (!input.isOpened())
   {
     cerr << "Error: the input stream is not opened.\n";
@@ -99,70 +102,87 @@ int main(int argc, char *const argv[])
     cerr << "Error: could not read any image from stream.\n";
     abort();
   }
-
-  double fps = 25.0;
+  
+  double fps=25.0;
   if (!cameraInput)
-    fps = input.get(CAP_PROP_FPS);
-  std::cout << fps << std::endl;
-
-  Mat outFrame = Mat::zeros(inFrame.size(), CV_8UC3);
-  Mat theMask = Mat::zeros(inFrame.size(), CV_8UC1);
-
+    fps=input.get(CAP_PROP_FPS);
+  //std::cout << fps << std::endl;
+  
+  //Mat outFrame = Mat::zeros(inFrame.size(), CV_8UC3);
+  //Mat theMask = Mat::zeros(inFrame.size(), CV_8UC1);
+  
+  //std::cout << inFrame.size() << std::endl;
   VideoWriter output;
-
-  output.open(fileout, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), fps, inFrame.size());
+  
+  output.open(fileout, cv::VideoWriter::fourcc('M','J','P','G'), fps, inFrame.size());
   if (!output.isOpened())
   {
     cerr << "Error: the ouput stream is not opened.\n";
     exit(-1);
-  }
+  }  
 
-  int frameNumber = 0;
+  int frameNumber=0;
   int key = 0;
+  Mat currentFrame;
+  cvtColor(inFrame, currentFrame, COLOR_BGR2GRAY);
 
-  // WRITE ME
+  Mat previousFrame = Mat::zeros(currentFrame.size(), currentFrame.type());
+  //Mat outFrame = Mat::zeros(currentFrame.size(), currentFrame.type());
+  Mat theMask = Mat::zeros(currentFrame.size(), currentFrame.type());
 
   cv::namedWindow("Input", cv::WINDOW_AUTOSIZE);
   cv::namedWindow("Output", cv::WINDOW_AUTOSIZE);
-  cv::Mat previousFrame = Mat::zeros(curIm.size(), curIm.type());
 
-  while (input.isOpened() && key != 27)
+  if(gauss > 0)
+    GaussianBlur(currentFrame, currentFrame, Size(gauss, gauss), 0);
+
+  while(wasOk && key!=27)
   {
     frameNumber++;
-    // Do your processing
-    // TODO
+    
+    Mat outFrame = Mat::zeros(currentFrame.size(), currentFrame.type());
 
-    // TODO Apply the mask to the original frame and show
+    previousFrame = currentFrame;
 
-    // Preparing the next iteration
+    input >> currentFrame;
 
-    // TODO Add frame to output video
-    previousFrame = inFrame;
-    input >> inFrame;
-    if (inFrame.empty())
+    if(currentFrame.empty())
       break;
 
-    cvtColor(inFrame, inFrame, COLOR_BGR2GRAY);
+    cvtColor(currentFrame, currentFrame, COLOR_BGR2GRAY);
 
-    if(gaussianKernel > 0)
-      cv::GaussianBlur(inFrame, inFrame, cv::Size(gaussianKernel, gaussianKernel), 0, 0);
+    if(gauss > 0)
+      GaussianBlur(currentFrame, currentFrame, Size(gauss, gauss), 0);
 
-    fsiv_segm_by_dif(inFrame, previousFrame, theMask, threshold, radius);
+    cvtColor(currentFrame, currentFrame, COLOR_GRAY2BGR);
+    cvtColor(previousFrame, previousFrame, COLOR_GRAY2BGR);
 
-    fsiv_apply_mask(inFrame, theMask, outFrame);
+    fsiv_segm_by_dif(previousFrame, currentFrame, theMask, threshold, radius);
+    cvtColor(currentFrame, currentFrame, COLOR_BGR2GRAY);
+    fsiv_apply_mask(currentFrame, theMask, outFrame);
 
-    imshow("Input", inFrame);
-    waitKey(30);
+    imshow("Input", currentFrame);
     imshow("Output", outFrame);
-    waitKey(30);
 
-    cvtColor(outFrame, outFrame, COLOR_GRAY2BGR); //CHECK: Should be RGB?
+    output << outFrame;
     output.write(outFrame);
-  }
-  
-  output.release();
-  input.release();   
-  cv::destroyAllWindows();     
 
+    key = waitKey(1);
+    if(key == 27)
+    {
+      output.release();
+      input.release();
+      cv::destroyAllWindows();
+      break;
+    }
+    if(key == 32)
+    {
+      imwrite("frame" + to_string(frameNumber) + ".png", outFrame);
+    }
+
+  }        
+  output.release();
+  input.release();
+  cv::destroyAllWindows();   
   return 0;
 }
