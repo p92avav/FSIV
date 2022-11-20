@@ -1,0 +1,14 @@
+Using RGB or Grayscale images?
+
+In remove_segmentation_noise should i use r as radius?
+
+In seg_by_diff, can I use abs instead of absdiff? If I use absdiff, where i have to threshold??
+
+In apply_mask, 1 channel or 3?
+
+In fsiv_seg_by_model and fsiv_seg_by_seg i have to use the noise removal? 
+I guess i have to, cuz u gave us the R as a parameter...
+
+In acc_model which option is better?
+
+In upadte_model which option is better?
