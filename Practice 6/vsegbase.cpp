@@ -108,7 +108,6 @@ int main(int argc, char *const argv[])
   Mat outFrame = Mat::zeros(inFrame.size(), CV_8UC3);
   Mat theMask = Mat::zeros(inFrame.size(), CV_8UC1);
 
-  //std::cout << inFrame.size() << std::endl;
   VideoWriter output;
 
   output.open(fileout, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), fps, inFrame.size());
@@ -123,9 +122,9 @@ int main(int argc, char *const argv[])
 
   // WRITE ME
 
-  // cv::namedWindow("Output");
   cv::namedWindow("Input", cv::WINDOW_AUTOSIZE);
-  //cv::namedWindow("Output", cv::WINDOW_AUTOSIZE);
+  cv::namedWindow("Output", cv::WINDOW_AUTOSIZE);
+  cv::Mat previousFrame = Mat::zeros(curIm.size(), curIm.type());
 
   while (input.isOpened() && key != 27)
   {
@@ -138,13 +137,32 @@ int main(int argc, char *const argv[])
     // Preparing the next iteration
 
     // TODO Add frame to output video
+    previousFrame = inFrame;
     input >> inFrame;
     if (inFrame.empty())
       break;
 
+    cvtColor(inFrame, inFrame, COLOR_BGR2GRAY);
+
+    if(gaussianKernel > 0)
+      cv::GaussianBlur(inFrame, inFrame, cv::Size(gaussianKernel, gaussianKernel), 0, 0);
+
+    fsiv_segm_by_dif(inFrame, previousFrame, theMask, threshold, radius);
+
+    fsiv_apply_mask(inFrame, theMask, outFrame);
+
     imshow("Input", inFrame);
     waitKey(30);
+    imshow("Output", outFrame);
+    waitKey(30);
 
+    cvtColor(outFrame, outFrame, COLOR_GRAY2BGR); //CHECK: Should be RGB?
+    output.write(outFrame);
   }
+  
+  output.release();
+  input.release();   
+  cv::destroyAllWindows();     
+
   return 0;
 }

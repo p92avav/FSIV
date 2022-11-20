@@ -14,10 +14,9 @@ void fsiv_remove_segmentation_noise(cv::Mat & img, int r)
     CV_Assert(r>0);
     //TODO
     //Check
-      cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(r, r)); // Should be 2*r+1, 2*r+1???
+      cv::Mat element = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(r, r));  //Should be 2*r+1, 2*r+1???
       cv::morphologyEx(img, img, cv::MORPH_CLOSE, element);
       cv::morphologyEx(img, img, cv::MORPH_OPEN, element);
-    //
 }
 
 void fsiv_segm_by_dif(const cv::Mat & prevFrame, const cv::Mat & curFrame, cv::Mat & difimg, int thr, int r)
@@ -25,9 +24,10 @@ void fsiv_segm_by_dif(const cv::Mat & prevFrame, const cv::Mat & curFrame, cv::M
    CV_Assert(prevFrame.type()==CV_8UC3 && prevFrame.type()==curFrame.type());
    CV_Assert(prevFrame.size()==prevFrame.size());
    // WRITE ME
-   
-   //difimg = cv::abs(prevFrame - curFrame) > thr; // Use absdiff instead of abs?
-   cv::absdiff(prevFrame, curFrame, difimg);
+
+   // Use absdiff instead of abs?
+   difimg = cv::abs(prevFrame - curFrame) > thr; 
+   //cv::absdiff(prevFrame, curFrame, difimg);
    fsiv_remove_segmentation_noise(difimg, r);
 
    CV_Assert(difimg.type()==CV_8UC1);
@@ -40,17 +40,14 @@ void fsiv_apply_mask(const cv::Mat & frame, const cv::Mat & mask, cv::Mat & outf
    CV_Assert(mask.type()==CV_8UC1);
    CV_Assert(frame.size()==mask.size());
    
-   // WRITE ME
-   if(frame.type() == CV_8UC1) // Im even using color???
-   {//Check if it is correct
-      cv::Mat tmp;
-      cv::cvtColor(frame, tmp, cv::COLOR_GRAY2BGR);
-      tmp.copyTo(outframe, mask);
-   }
-   else
-   {
-      frame.copyTo(outframe, mask);
-   }
+   //GRAYSCALE
+   /*cv::Mat tmp;
+   cv::cvtColor(frame, tmp, cv::COLOR_GRAY2BGR);
+   tmp.copyTo(outframe, mask);
+   */
+
+   //COLOR
+   frame.copyTo(outframe, mask);
 
    CV_Assert(outframe.type()==frame.type());
    CV_Assert(outframe.size()==frame.size());   
