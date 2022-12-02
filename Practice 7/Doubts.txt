@@ -1,0 +1,14 @@
+common_code.cpp:
+    -187: Theres only one descriptor function? what should i use on the 2nd if? CREATE one
+
+metrics.cpp:
+
+
+test_image.cpp:
+    -
+
+train_val.cpp:
+    -123: What and how to do? avergigua
+    -253: Refers to that?
+    -309: Validation works with train data? Train vs test, no val
+
