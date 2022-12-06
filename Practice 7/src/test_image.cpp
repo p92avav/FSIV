@@ -73,32 +73,35 @@ main (int argc, char* const* argv)
       }
       std::vector<int> categories;
       for (int i = 0; i < 4; i++) categories.push_back(i);
-      std::vector<std::string> categories_names = {"Normal", "Serrated", "Adenocarcinoma", "Adenoma" }; // TODO: insert names
+      std::vector<std::string> categories_names = { "0", "1", "2", "3" }; // TODO: insert names
 
 
       std::cout << "Loading classifier's model ... ";
       cv::Ptr<cv::ml::StatModel> clsf;
       if (classifier==0)
-      {
           //TODO: Load a KNearest model.
-          std::cout<<"here 1"<<std::endl;
           clsf = cv::Algorithm::load<cv::ml::KNearest>(model_fname);
-          std::cout<<"here 2"<<std::endl;
           //
-      }
       else if (classifier==1)
           //TODO: Load a SVM model.
           clsf = cv::Algorithm::load<cv::ml::SVM>(model_fname);
           //
       else if (classifier==1)
           //TODO: Load a RTrees model.
-            clsf = cv::Algorithm::load<cv::ml::RTrees>(model_fname);
+          clsf = cv::Algorithm::load<cv::ml::RTrees>(model_fname);
           //
       else
       {
           std::cerr << "Error: unknown classifier." << std::endl;
           return EXIT_FAILURE;
       }
+
+      //check if the model is loaded
+        if (clsf.empty())
+        {
+            std::cerr << "Error: could not load the model." << std::endl;
+            return EXIT_FAILURE;
+        }
       assert(clsf!=nullptr && clsf->isTrained());
       std::cout << " ok." << std::endl;      
 
@@ -114,19 +117,20 @@ main (int argc, char* const* argv)
             cv::Mat roi_img_color, roi_img;
             //TODO: Get the ROI and convert to gray
             roi_img_color = input_img(roi);
+            cv::cvtColor(roi_img_color, roi_img, cv::COLOR_BGR2GRAY);
 #if (CV_VERSION_MAJOR > 3)
             cv::cvtColor(roi_img_color, roi_img, cv::COLOR_BGR2GRAY);
 #else
-            cv::cvtColor(roi_img_color, roi_img, cv::COLOR_BGR2GRAY);
+            cv::cvtColor(roi_img_color, roi_img, CV_BGR2GRAY);
 #endif
-            // cv::convertTo() ITS ALREADY DONE UP?
-            cv::cvtColor(roi_img_color, roi_img, cv::COLOR_BGR2GRAY);
+            // cv::convertTo()
             //
             assert(!roi_img.empty() && roi_img.type()==CV_8UC1);
             if (img_norm == 0)
             {
                 //TODO: convert ROI to range to [0, 1]
-                roi_img.convertTo(roi_img, CV_32FC1, 1.0/255.0);
+                cv::normalize(roi_img, roi_img, 0, 1, cv::NORM_MINMAX);
+                roi_img.convertTo(roi_img, CV_32FC1);
                 //
 #ifndef NDEBUG
                 {
@@ -156,7 +160,7 @@ main (int argc, char* const* argv)
 
             cv::Mat y_pred;
 
-            //TODO: get the classifier prediction. Already done?
+            //TODO: get the classifier prediction.
             clsf->predict(ft_desc, y_pred);
             std::cout << y_pred << std::endl;
             //

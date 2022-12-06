@@ -7,6 +7,8 @@
 #include "metrics.hpp"
 #include "common_code.hpp"
 
+using namespace std;
+
 float
 fsiv_chisquared_dist(const cv::Mat & h1, const cv::Mat & h2)
 {
@@ -22,10 +24,7 @@ fsiv_chisquared_dist(const cv::Mat & h1, const cv::Mat & h2)
     //Hint: try not to use loops, only OpenCV mat arithmetics and functions.
     //Remember to avoid dividing by zero.
 
-    //TODO: Check if correct
-    
     float chi2 = 0.5 * cv::sum((h1 - h2).mul(h1 - h2) / (h1 + h2))[0];
-    ret_v = chi2;
 
     //
     assert(!std::isnan(ret_v) && (ret_v >= 0.0f));
@@ -33,7 +32,8 @@ fsiv_chisquared_dist(const cv::Mat & h1, const cv::Mat & h2)
 }
 
 cv::Mat
-compute_confusion_matrix(const cv::Mat& true_labels, const cv::Mat& predicted_labels)
+compute_confusion_matrix(const cv::Mat& true_labels,
+                         const cv::Mat& predicted_labels)
 {
     assert(true_labels.rows == predicted_labels.rows);
     assert(true_labels.type()==CV_32FC1);
@@ -44,14 +44,16 @@ compute_confusion_matrix(const cv::Mat& true_labels, const cv::Mat& predicted_la
 
     double max_true_label=0.0;
 
-    //TODO: First find the max class label used in true_labels //TODO: Check
-    cv::minMaxLoc(true_labels, NULL, &max_true_label, NULL, NULL);
+    //TODO: First find the max class label used in true_labels
+    cv::minMaxLoc(true_labels, NULL, &max_true_label);
+
     //    
     const int n_categories = static_cast<int>(max_true_label)+1;
     assert(n_categories>1);
 
     //TODO: create a square matrix with zeros for n_categories.
     cmat = cv::Mat::zeros(n_categories, n_categories, CV_32FC1);
+    
     //
     assert(!cmat.empty() && cmat.type()==CV_32FC1
            && cmat.rows==n_categories && cmat.rows==cmat.cols);
@@ -60,10 +62,11 @@ compute_confusion_matrix(const cv::Mat& true_labels, const cv::Mat& predicted_la
     //TODO: Compute the confussion matrix given the ground truth (true_labels)
     // and the predictions (predicted_labels).
     //Remember: Rows are the Ground Truth. Cols are the predictions.
-    for(int i=0; i<true_labels.rows; i++)
-    {
-        cmat.at<float>(true_labels.at<float>(i), predicted_labels.at<float>(i))++;
+
+    for(int i = 0; i < predicted_labels.rows; i++){
+        cmat.at<float>(true_labels.at<float>(i,0), predicted_labels.at<float>(i,0))++;
     }
+
     //
     assert(std::abs(cv::sum(cmat)[0]-static_cast<double>(true_labels.rows)) <=
             1.0e-6);
@@ -83,69 +86,79 @@ compute_recognition_rate(const cv::Mat& cmat, int category)
     //Remember to avoid dividing by zero.
     cv::Mat row_sum;
 
-    if (cv::sum(cmat.row(category))[0] != 0) // Not dividing by zero
+    if(cv::sum(cmat.row(category))[0] != 0)
     {
-        float RecRate = cmat.at<float>(category, category);
-        float aux = cv::sum(cmat.row(category))[0];
-        RR = RecRate / aux;
-    }   
+        RR = cmat.at<float>(category, category) / cv::sum(cmat.row(category))[0];
+    }
+    else
+    {
+        RR = 0;
+        cout<<"Divided by zero in Recognition Rate"<<endl;
+    }
     //
     assert(!std::isnan(RR) && RR>=0.0f && RR<=1.0f);
     return RR;
 }
 
 float
-compute_mean_recognition_rate(const cv::Mat& cmat, std::vector<int> const& categories)
+compute_mean_recognition_rate(const cv::Mat& cmat,
+                              std::vector<int> const& categories)
 {
     assert(!cmat.empty() && cmat.depth()==CV_32F);
     assert(cmat.rows == cmat.cols && cmat.rows>1);
 
     float MRR = 0.0;
-    //TODO: Check if i have to convert to float
-    if (categories.empty())
+
+    if(categories.empty())
     {
         for(int i=0; i<cmat.rows; ++i)
         {
             MRR += compute_recognition_rate(cmat, i);
         }
-    MRR = MRR / static_cast<float>(cmat.rows); //TODO: Check if its needed to convert to float
+        MRR /= static_cast<float>(cmat.rows);
     }
+
     else
     {
         for(int i=0; i<categories.size(); ++i)
         {
             MRR += compute_recognition_rate(cmat, categories[i]);
         }
+        MRR /= static_cast<float>(categories.size());
     }
-    MRR = MRR / static_cast<float>(categories.size());
 
     assert(!std::isnan(MRR) && MRR>=0.0f && MRR<=1.0f);
     return MRR;
 }
 
 float
-compute_accuracy(const cv::Mat& cmat, std::vector<int> const& categories)
+compute_accuracy(const cv::Mat& cmat,
+                 std::vector<int> const& categories)
 {
     assert(!cmat.empty() && cmat.depth()==CV_32F);
     assert(cmat.rows == cmat.cols && cmat.rows>1);
 
     float acc = 0.0;
+
     //TODO: compute the accurracy only for the categories given.
     //Remember to avoid dividing by zero.
 
-    //TODO: Check if correct
-    float correct = 0.0;
-    float misses = 0.0;
+    float sum = 0.0, aux = 0.0;
 
-    for(int i=0; i<categories.size(); ++i)
+    for(int i = 0; i < categories.size(); i++)
     {
-        correct += cmat.at<float>(categories[i], categories[i]);
-        misses += cv::sum(cmat.row(categories[i]))[0]; //- cmat.at<float>(categories[i], categories[i]);
+        sum += cv::sum(cmat.row(categories[i]))[0];
+        aux += cmat.at<float>(categories[i], categories[i]);
     }
 
-    if (correct != 0) // Not dividing by zero
+    if(sum != 0)
     {
-        acc = correct / (correct);
+        acc = aux / sum;
+    }
+    else
+    {
+        acc = 0;
+        cout<<"Divided by zero in Accuracy"<<endl;
     }
     //
     assert(!std::isnan(acc) && acc >0.0f && acc <= 1.0f);

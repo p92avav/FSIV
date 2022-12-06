@@ -7,18 +7,15 @@
 #include <exception>
 
 //Includes para OpenCV, Descomentar según los módulo utilizados.
-//#include <opencv2/core/core.hpp>
+#include <opencv2/core/core.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/ml/ml.hpp>
-#include <opencv2/datasets/util.hpp>
 
 #include "common_code.hpp"
 // #include "lbp.hpp"
 #include "metrics.hpp"
-
-using namespace std;
 
 #define FSIV_VALIDATE_RATIO 0.2   // Percentage of data for validation: default 0.2
 
@@ -50,6 +47,9 @@ const cv::String keys =
     "{verbose        |0     | Set the verbose level.}"
 #endif
     ;
+
+using namespace cv;
+using namespace std;
 
 int
 main (int argc, char* const* argv)
@@ -105,7 +105,7 @@ main (int argc, char* const* argv)
 
       std::string filename = dataset_path + "/" + "train_labels.txt";
       std::string dbdir = dataset_path + "/" + "train_128"; 
-	  std::cout<<filename<<std::endl;
+	  
       std::string filename_test = dataset_path + "/" + "test_labels.txt";
       std::string dbdir_test = dataset_path + "/" + "test_128"; 
       
@@ -125,12 +125,22 @@ main (int argc, char* const* argv)
 
       if (validate)
       {
-          // TODO: split training data into training and validation
-          std::cout << FSIV_VALIDATE_RATIO * 100 << "'%' used for validation." << std::endl;
-
-
+        // TODO: split training data into training and validation
+        std::cout << FSIV_VALIDATE_RATIO * 100 << "% used for validation." << std::endl;
+        // Populate idx_val and idx_train
+        // . . . 
         
-
+        for(int i = 0; i < train_labels.rows; i++)
+        {
+            if(i % 5 == 0)
+            {
+                idx_val.push_back(i);
+            }
+            else
+            {
+                idx_train.push_back(i);
+            }
+        }
       }
 
       bool dbloaded_test;
@@ -142,6 +152,7 @@ main (int argc, char* const* argv)
             std::cout << "done!" << std::endl;
           else
             std::cout << " ERROR: couldn't load test data!" << std::endl;
+
           // Extract features
           if (!fsiv_compute_desc_from_list(test_images,
               dbdir_test,
@@ -162,7 +173,6 @@ main (int argc, char* const* argv)
       }
       else {
           // Extract features
-
           if (!fsiv_compute_desc_from_list(train_images,
               dataset_path,
               canonical_size,
@@ -185,7 +195,7 @@ main (int argc, char* const* argv)
       // TRAINING
       cv::Ptr<cv::ml::StatModel> clsf;
       int train_flags = 0;
-
+        //cout<<"reaches"<<endl;
       if (validate)
       {
           //  TYPE OF CLASSIFIER
@@ -197,12 +207,11 @@ main (int argc, char* const* argv)
               //Set algorithm type to BRUTE_FORCE.
               //Set it as a classifier (setIsClassifier)
               //Set hyperparameter K.
-            
-                cv::Ptr<cv::ml::KNearest> knn = cv::ml::KNearest::create();
+              cv::Ptr<cv::ml::KNearest> knn = cv::ml::KNearest::create();
                 knn->setAlgorithmType(cv::ml::KNearest::BRUTE_FORCE);
                 knn->setIsClassifier(true);
                 knn->setDefaultK(knn_K);
-                
+
               //
               assert(knn != nullptr);
               clsf = knn;
@@ -214,8 +223,7 @@ main (int argc, char* const* argv)
               //TODO: Create an SVM classifier.
               //Set algorithm type to C_SVC.              
               //Set hyperparameters: C, kernel, Gamma, Degree.
-
-                svm->setType(cv::ml::SVM::C_SVC);
+              svm->setType(cv::ml::SVM::C_SVC);
                 svm->setC(svm_C);
                 svm->setKernel(svm_K);
                 svm->setGamma(svm_G);
@@ -234,13 +242,12 @@ main (int argc, char* const* argv)
               //Set the max num of trees rtrees_T, and required OOB error rtrees_E
               //using a cv::TermCriteria object.
 
-                rtrees = cv::ml::RTrees::create();
-                if (rtrees_V = 0) //Use the default value WHAT IS THE DEAFULT VALUE?
-                    rtrees->setActiveVarCount(rtrees_V);
-                else
-                    rtrees->setActiveVarCount(rtrees_V);
+            rtrees = cv::ml::RTrees::create();
+                rtrees->setActiveVarCount(rtrees_V);
                 rtrees->setMaxDepth(rtrees_T);
-                rtrees->setTermCriteria(cv::TermCriteria(cv::TermCriteria::MAX_ITER + cv::TermCriteria::EPS, rtrees_T, rtrees_E));
+                cv::TermCriteria ct;
+                ct.epsilon = rtrees_E;
+                rtrees->setTermCriteria(ct);
               //
               assert(rtrees != nullptr);
               clsf = rtrees;
@@ -253,16 +260,23 @@ main (int argc, char* const* argv)
 
 
           // TODO: train only with the samples from the training subset (excluding the validation ones)
-            cout<<"reach1"<<endl;
-            cv::Ptr<cv::ml::TrainData> train_data = 
-          cv::ml::TrainData::create(train_descs, cv::ml::ROW_SAMPLE, train_labels);
-          cout<<"exit0"<<endl;
-            train_data->setTrainTestSplitRatio(1.0 - FSIV_VALIDATE_RATIO, true);
-            cout<<"exit1"<<endl;
+
           std::cout << "Training with " << train_labels.rows << " samples ... ";
 
-          //TODO: train the classifer using training data.        
-          clsf -> train(train_data);  
+            if(!only_testing)
+            {
+                cv::Mat train_descs_train, train_labels_train;
+                for(int i = 0; i < idx_train.size(); i++)
+                {
+                    train_descs_train.push_back(train_descs.row(idx_train[i]));
+                    train_labels_train.push_back(train_labels.row(idx_train[i]));
+                }
+                clsf->train(train_descs_train, cv::ml::ROW_SAMPLE, train_labels_train);
+            }
+            else //TODO: train the classifer using training data.
+            {
+                clsf->train(test_descs, cv::ml::ROW_SAMPLE, test_labels);
+            }      
           //
           CV_Assert(clsf->isClassifier());
           assert(clsf->isTrained());
@@ -273,16 +287,15 @@ main (int argc, char* const* argv)
           train_flags = cv::ml::StatModel::UPDATE_MODEL;
           if (classifier == 0)
               //TODO: load a KNN classifier.
-                clsf = cv::ml::KNearest::load(model_fname);
-              
+              clsf = cv::ml::KNearest::load(model_fname);
           //
           else if (classifier == 1)
               //TODO: load a SVM classifier.
-              clsf = cv::ml::SVM::load(model_fname);
+                clsf = cv::ml::SVM::load(model_fname);
           //
           else if (classifier == 2)
               //TODO: load a RTrees classifier.
-              clsf = cv::ml::RTrees::load(model_fname);
+                clsf = cv::ml::RTrees::load(model_fname);
           //
           else
           {
@@ -303,22 +316,21 @@ main (int argc, char* const* argv)
       if (only_testing)
       {
           // TODO
+            predict_labels = clsf->predict(test_descs, predict_labels);
             target_labels = test_labels;
             target_descs = test_descs;
-            clsf->predict(target_descs, predict_labels);
-            
-
       }
       else
       {
-          // TODO TRAINING
-           cout<<"reach"<<endl;
-            cv::Ptr<cv::ml::TrainData> train_data =
-            cv::ml::TrainData::create(train_descs, cv::ml::ROW_SAMPLE, train_labels);
-            clsf->train(train_data, train_flags);     
-            cout<<"exit"<<endl;
+          // TODO
+            predict_labels = clsf->predict(train_descs, predict_labels);
+            target_labels = train_labels;
+            target_descs = train_descs;
       }
-            
+
+        // EVALUATION
+        
+
       //
       assert(!predict_labels.empty() && predict_labels.rows == target_descs.rows);
 
@@ -326,8 +338,9 @@ main (int argc, char* const* argv)
       cv::Mat cmat = compute_confusion_matrix(cv::Mat_<float>(target_labels),
           predict_labels);
 
+        
       float mrr = compute_mean_recognition_rate(cmat, categories);
-      float acc = compute_accuracy(cmat);
+      float acc = compute_accuracy(cmat, categories);
 
       std::cout << "##############################" << std::endl;
       std::cout << "# Model metrics: ";

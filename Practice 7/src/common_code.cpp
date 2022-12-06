@@ -17,6 +17,8 @@
 
 #ifndef NDEBUG
 
+using namespace std;
+
 
 const std::string __Debug_Padding =
 "                                                                              "
@@ -70,10 +72,8 @@ fsiv_normalize_mean_var(cv::Mat const& src)
     // its var equal to 1.0.
     // Hint: use cv::meanStdDev() to get the source mean and stdev.
 
-    // CORRECT
     cv::Mat mean, stdev;
-    cv::meanStdDev(src, mean, stdev); // Done below
-    //Same as dst = src-mean / stddev, but cooler
+    cv::meanStdDev(src, mean, stdev);
     cv::subtract(src, mean, dst);
     cv::divide(dst, stdev, dst);
 
@@ -98,13 +98,8 @@ fsiv_normalize_minmax(cv::Mat const& src)
     //TODO: normalize the source image so its mininum value will be 0.0 and its
     // maximun value be 1.0
     // Hint: use cv::normalize()
-    std::vector<double> mean, stddev;
 
-    cv::meanStdDev(src, mean, stddev);
-    cv::normalize(src, dst, 0, 1, cv::NORM_MINMAX); //Should be 1,0?
-    
-    //src.convertTo(dst, CV_32FC1); //Necessary?
-    //cv::normalize(src, dst, 0, 1, cv::NORM_MINMAX);
+    cv::normalize(src, dst, 0.0, 1.0, cv::NORM_MINMAX);
 
     //
 
@@ -139,28 +134,33 @@ bool fsiv_desc_simple_gray(const cv::Mat & image, cv::Mat & desc)
 {
     std::vector<float> vimg(image.begin<float>(), image.end<float>());
             
-    //TODO:
+    cv::Mat vimg_mat(vimg);
+    
+    desc = vimg_mat.t();
 
     return true;
 }
 
 
 bool
-fsiv_compute_desc_from_list(const std::vector<std::string> & lfiles, const std::string & dbdir,                     
-const cv::Size& canonical_size, cv::Mat & l_descs, const int desctype, const int img_norm, bool hist_norm)
+fsiv_compute_desc_from_list(const std::vector<std::string> & lfiles, 
+                      const std::string & dbdir,                     
+                      const cv::Size& canonical_size,
+                      cv::Mat & l_descs, const int desctype,
+                      const int img_norm, bool hist_norm)
 {
-
     DEBUG(1, "Computing ft descriptors from files" << std::endl);
     bool ret_val = true;
     for (size_t i =0; i < lfiles.size() && ret_val; i++)
     {
         DEBUG(2, "\t Processing image: '" << lfiles[i] << "'." << std::endl);
+
     // Concatenate dbdir to filename
     std::string imgname = dbdir + "/" + lfiles[i];
     cv::Mat image = cv::imread(imgname, cv::IMREAD_GRAYSCALE);
+
         if (!image.empty())
         {
-            
             image.convertTo(image, CV_32F, 1.0/255.0, 0.0);
 #ifndef NDEBUG
             if (__Debug_Level>=3)
@@ -170,16 +170,9 @@ const cv::Size& canonical_size, cv::Mat & l_descs, const int desctype, const int
             }
 #endif
             if (img_norm==1)
-            {
-                std::cout<<"norm1"<<std::endl;
                 image = fsiv_normalize_minmax(image);
-            }
             else if (img_norm==2)
-            {
-                std::cout<<"norm2"<<std::endl;
-
                 image = fsiv_normalize_mean_var(image);
-            }
             cv::Mat canonical_img;
             cv::resize(image, canonical_img, canonical_size);
             cv::Mat ft_img;
@@ -187,11 +180,14 @@ const cv::Size& canonical_size, cv::Mat & l_descs, const int desctype, const int
             cv::Mat vimg_mat;
 			// TODO: use 'desc_type' to choose your descriptors
 			// EXAMPLE:
-            if (desctype==0)
+            if(desctype == 0)
+            {
                 fsiv_desc_simple_gray(canonical_img, vimg_mat);
-            if (desctype==1)
-                //TODO:CHECK I DONT HAVE ANY OTHER DESCRIPTOR?????????
-                
+            }
+            else if(desctype == 1)
+            {
+                //TODO:
+            }
             if (i==0)
             {
                 l_descs = cv::Mat(lfiles.size(), vimg_mat.cols, CV_32FC1);
