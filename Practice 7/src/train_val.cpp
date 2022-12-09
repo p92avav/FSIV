@@ -96,7 +96,17 @@ main (int argc, char* const* argv)
           parser.printErrors();
           return 0;
       }
-
+    cout <<"Using as parameters: "<<endl;
+    cout <<"img_norm: "<<img_norm<<endl;
+    cout <<"validate: "<<validate<<endl;
+    cout <<"only_testing: "<<only_testing<<endl;
+    cout <<"classifier: "<<classifier<<endl;
+    cout <<"desctype: "<<desctype<<endl;
+    cout <<"knn_K: "<<knn_K<<endl;
+    cout <<"svm_C: "<<svm_C<<endl;
+    cout <<"svm_K: "<<svm_K<<endl;
+    cout <<"svm_D: "<<svm_D<<endl;
+    cout <<"svm_G: "<<svm_G<<endl;
       cv::Mat train_descs, train_labels;
       cv::Mat val_descs, val_labels;      
       cv::Mat test_descs, test_labels;
@@ -155,7 +165,7 @@ main (int argc, char* const* argv)
 
           // Extract features
           if (!fsiv_compute_desc_from_list(test_images,
-              dbdir_test,
+              dataset_path,
               canonical_size,
               test_descs,
               desctype,

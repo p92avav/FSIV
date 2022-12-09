@@ -15,9 +15,18 @@
 #include <opencv2/imgproc.hpp>
 #include<opencv2/highgui.hpp>
 
+#include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
+#include <opencv2/xfeatures2d/nonfree.hpp>
+#include <opencv2/objdetect.hpp>
+
+
+
 #ifndef NDEBUG
 
 using namespace std;
+
+using namespace cv;
 
 
 const std::string __Debug_Padding =
@@ -141,6 +150,56 @@ bool fsiv_desc_simple_gray(const cv::Mat & image, cv::Mat & desc)
     return true;
 }
 
+bool fsiv_own_descriptor(const cv::Mat & image, cv::Mat & desc)
+{
+    auto detector = cv::xfeatures2d::SurfFeatureDetector::create(4096);
+    std::vector<cv::KeyPoint> keypoints;
+    detector->detect(image, keypoints);               
+    
+    detector->setHessianThreshold(4000);
+    detector->detect(image, keypoints);
+    Mat auxDesc;
+
+    detector->compute(image, keypoints, auxDesc);
+
+    cv::Scalar mean = cv::mean(auxDesc);
+
+    desc = Mat::zeros(1, 4096, CV_32F);
+    for (int i = 0; i < auxDesc.cols; i++)
+    {
+        desc.at<float>(0, i) = auxDesc.at<float>(0, i);
+    }
+    for (int i = auxDesc.cols; i < 4096; i++)
+    {
+        desc.at<float>(0, i) = mean[0];
+    }
+
+    return true;
+}
+
+
+
+bool fsiv_SIFT_descriptor(const cv::Mat & image, cv::Mat & desc)
+{
+    Ptr<SIFT> detector = SIFT::create();
+
+    std::vector<KeyPoint> keypoints;
+    detector->detect(image, keypoints);
+
+    Mat auxDesc;
+    
+    detector->compute(image, keypoints, auxDesc);
+
+    //Final descriptor has to be of size 1x4096
+    desc = Mat::zeros(1, 4096, CV_32F);
+    for (int i = 0; i < auxDesc.cols; i++)
+    {
+        desc.at<float>(0, i) = auxDesc.at<float>(0, i);
+    }
+    
+
+    return true;
+}
 
 bool
 fsiv_compute_desc_from_list(const std::vector<std::string> & lfiles, 
@@ -158,6 +217,7 @@ fsiv_compute_desc_from_list(const std::vector<std::string> & lfiles,
     // Concatenate dbdir to filename
     std::string imgname = dbdir + "/" + lfiles[i];
     cv::Mat image = cv::imread(imgname, cv::IMREAD_GRAYSCALE);
+    cv::Mat imgGray = image.clone();
 
         if (!image.empty())
         {
@@ -176,6 +236,7 @@ fsiv_compute_desc_from_list(const std::vector<std::string> & lfiles,
             cv::Mat canonical_img;
             cv::resize(image, canonical_img, canonical_size);
             cv::Mat ft_img;
+            cv::resize(imgGray, canonical_img, canonical_size);
 
             cv::Mat vimg_mat;
 			// TODO: use 'desc_type' to choose your descriptors
@@ -187,6 +248,11 @@ fsiv_compute_desc_from_list(const std::vector<std::string> & lfiles,
             else if(desctype == 1)
             {
                 //TODO:
+                fsiv_own_descriptor(imgGray, vimg_mat);
+            }
+            else if(desctype == 2)
+            {
+                fsiv_SIFT_descriptor(imgGray, vimg_mat);
             }
             if (i==0)
             {
